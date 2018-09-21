@@ -63,7 +63,35 @@ let command = new Command(v => Signal.of(3).delay(1000), 0)
 command.execute(2).subscribe(next, complete)
 ...
 ```
-   
-  
-  
+## 核心--Signal常用操作
+有些很复杂的操作在这边不做解释，想了解的可以看代码，主要是为了其他方法的封装操作
+### 简单Signal创建操作
+#### static of(value)
+快速创建一个只有一个数据Value的signal
+#### static empty()
+快速创建一个空的signal
+#### static error(err)
+快速创建错误的signal
+#### static never()
+快速创建一个不会自己结束且空的signal
+### 订阅流程附加操作
+#### initially(block)
+在订阅开始前注入操作
+#### do(next,complete,error)
+在订阅过程中对数据注入操作
+#### finally(block)
+在订阅结束后注入操作
+```
+Signal.of(4)
+   .do((v) => console.log('do next + ' + v), () => console.log('do complete'))
+   .initially(() => console.log('before subscribe'))
+   .finally(() => console.log('after complete'))
+   .subscribeNext()
+/**
+ *before subscribe
+ *do next + 4
+ *do complete
+ *after error or complete
+ */
+```
   
