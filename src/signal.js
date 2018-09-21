@@ -184,21 +184,76 @@ class Signal {
     }
     
     //如果当前signal发送的value都是signal类型，我们需要每次接收到最新的值并订阅，同时取消前一个值的订阅
-    // switchToLates() {
-    //     return new Signal(s => {
-    //         let Connection = require('./connection')
-    //         let Subject = require('../subject/subject')
-    //         let con = new Connection(this, new Subject())
-    //         let d = con.subject.subscribe(v => {
+    switchToLatest() {
+        return new Signal(s => {
+            let Connection = require('./connection')
+            let Subject = require('../subject/subject')
+            let con = new Connection(this, new Subject())
+            let d = con.subject.bind(v => v.takeUntil(con.subject).concat(Signal.never()))._subscribeProxy(s)
+            let d2 = con.connect()
+            return new Disposable(() => {
+                d.dispose()
+                d2.dispose()
+            })
+        })
+    }
 
+    switchCase(signalMap, defaultSignal) {
+        return this.map(v => {
+            return signalMap[v] ? signalMap[v] : defaultSignal
+        }).switchToLatest()
+    }
 
-    //         }, () => {})
-    //     })
-    // }
+    ifelse(trueSignal, falseSignal) {
+        return this.take(1).map(v => {
+            return v ? trueSignal : falseSignal
+        }).switchToLatest()
+    }
 
-    // flattenMap(block) {
-        
-    // }
+    bind(block) {
+        return new Signal(s => {
+            let signals = [this]
+            let rootDisposable = new CompoundDisposable()
+            let completeSignal = (signal, disposable) => {
+                signals = signals.filter(ss => ss !== signal)
+                rootDisposable.removeDisposable(disposable)
+                if (signals.length === 0) {
+                    rootDisposable.dispose() 
+                    s.sendComplete()
+                }
+            }
+            let addSignal = signal => {
+                signals.push(signal)
+                let dd = new CompoundDisposable()
+                rootDisposable.addDisposable(dd)
+                dd.addDisposable(signal.subscribe(vv => {
+                    s.sendNext(vv)
+                }, () => {
+                    completeSignal(signal, dd)
+                }, err => {
+                    rootDisposable.dispose()
+                    s.sendError(err)
+                }))
+            }
+            let ddd = new CompoundDisposable()
+            rootDisposable.addDisposable(ddd)
+            ddd.addDisposable(this.subscribe(v => {
+                if (rootDisposable.disposed) {
+                    return
+                }
+                let signal = block(v)
+                if (signal) {
+                    addSignal(signal)
+                }
+            }, () => {
+                completeSignal(this, ddd)
+            }, err => {
+                rootDisposable.dispose()
+                s.sendError(err)
+            }))
+            return rootDisposable
+        })
+    }
 
     map(mapf) {
         if (mapf == null) {
@@ -716,6 +771,19 @@ class Signal {
             return d
         })
         return signal
+    }
+
+    timeout(time) {
+        return new Signal(s => {
+            let timeoutId = setTimeout(() => {
+                s.sendError({code: -1, msg:'timeout'})
+            }, time)
+            let d = this._subscribeProxy(s)
+            return new Disposable(() => {
+                clearTimeout(timeoutId)
+                d.dispose()
+            })
+        })
     }
 
     ignoreValues() {
