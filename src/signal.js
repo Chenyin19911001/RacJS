@@ -39,12 +39,56 @@ class Signal {
         })
     }
 
+    static fromArray(array) {
+        return new Signal(s => {
+            array.forEach(v => {
+                s.sendNext(v)
+            })
+            s.sendComplete()
+            return null
+        })
+    }
+
+    static fromRange(start, count, distance = 1) {
+        return new Signal(s => {
+            for(let i = 0; i < count; i++) {
+                let v = start + i * distance
+                s.sendNext(v)
+            }
+            s.sendComplete()
+            return null
+        })
+    }
+
+    static fromPromise(promise) {
+        return new Signal(s => {
+            promise.then(d => {
+                s.sendNext(d)
+                s.sendComplete()
+            }).catch(e => {
+                s.sendError(e)
+            })
+        })
+    }
+
+    static interval(time, start = 0) {
+        return new Signal(s => {
+            let v = start
+            let intervalId = setInterval(() => {
+                s.sendNext(v)
+                v++
+            }, time)
+            return new Disposable(() => {
+                clearInterval(intervalId)
+            })
+        })
+    }
+
     static defer(signalCreate) {
         return new Signal(s => {
             let signal = signalCreate()
             return signal._subscribeProxy(s)
         })
-
     }
 
     subscribe(next, complete, error) {
@@ -143,6 +187,10 @@ class Signal {
         return this.concat(Signal.of(value))
     }
 
+    then(signal) {
+        return this.ignoreValues().concat(signal)
+    }
+
     replaced(signal) {
         return new Signal(s => {
             let replaced = false
@@ -167,17 +215,15 @@ class Signal {
     takeUntil(otherSignal) {
         return new Signal(s => {
             let d = new CompoundDisposable()
-            let d1 = otherSignal.subscribe(v => {
+            d.addDisposable(otherSignal.subscribe(v => {
+                d.dispose()
                 s.sendComplete()
             }, () => {
-                s.sendComplete()
-            })
-            if (!d1.disposed) {
-                let d2 = this._subscribeProxy(s)
-                d.addDisposable(d1)
-                d.addDisposable(d2)
-            } else {
                 d.dispose()
+                s.sendComplete()
+            }))
+            if (!d.disposed) {
+                d.addDisposable(this._subscribeProxy(s))
             }
             return d
         })
@@ -187,7 +233,7 @@ class Signal {
     switchToLatest() {
         return new Signal(s => {
             let Connection = require('./connection')
-            let Subject = require('../subject/subject')
+            let Subject = require('./subject/subject')
             let con = new Connection(this, new Subject())
             let d = con.subject.bind(v => v.takeUntil(con.subject).concat(Signal.never()))._subscribeProxy(s)
             let d2 = con.connect()
@@ -790,10 +836,6 @@ class Signal {
         return this.filter(v => false)
     }
 
-    then(signal) {
-        return this.ignoreValues().concat(signal)
-    }
-
     distinct(keySelector) {
         if (!keySelector) {
             return this
@@ -1260,50 +1302,7 @@ class Signal {
         })
     }
 
-    static fromArray(array) {
-        return new Signal(s => {
-            array.forEach(v => {
-                s.sendNext(v)
-            })
-            s.sendComplete()
-            return null
-        })
-    }
-
-    static fromRange(start, count, distance = 1) {
-        return new Signal(s => {
-            for(let i = 0; i < count; i++) {
-                let v = start + i * distance
-                s.sendNext(v)
-            }
-            s.sendComplete()
-            return null
-        })
-    }
-
-    static fromPromise(promise) {
-        return new Signal(s => {
-            promise.then(d => {
-                s.sendNext(d)
-                s.sendComplete()
-            }).catch(e => {
-                s.sendError(e)
-            })
-        })
-    }
-
-    static interval(time, start = 0) {
-        return new Signal(s => {
-            let v = start
-            let intervalId = setInterval(() => {
-                s.sendNext(v)
-                v++
-            }, time)
-            return new Disposable(() => {
-                clearInterval(intervalId)
-            })
-        })
-    }
+    
 }
 
 module.exports = Signal
