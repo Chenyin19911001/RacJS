@@ -33,25 +33,23 @@ class Signal {
         })
     }
 
+    static never() {
+        return new Signal(s => {
+            return null
+        })
+    }
+
+    static defer(signalCreate) {
+        return new Signal(s => {
+            let signal = signalCreate()
+            return signal._subscribeProxy(s)
+        })
+
+    }
+
     subscribe(next, complete, error) {
         let s = new Subscriber(next, complete, error)
         return this._subscribeProxy(s)
-    }
-
-    do(next, complete, error) {
-        return new Signal(s => {
-            let d = this.subscribe(v => {
-                next && next(v)
-                s.sendNext(v)
-            }, () => {
-                complete && complete()
-                s.sendComplete()
-            }, err => {
-                error && error(err)
-                s.sendError(err)
-            })
-            return d
-        })
     }
 
     subscribeNext(next) {
@@ -74,6 +72,29 @@ class Signal {
         return compoundDisposable
     }
 
+    initially(callBack) {
+        return Signal.defer(() => {
+            callBack && callBack()
+            return this
+        })
+    }
+
+    do(next, complete, error) {
+        return new Signal(s => {
+            let d = this.subscribe(v => {
+                next && next(v)
+                s.sendNext(v)
+            }, () => {
+                complete && complete()
+                s.sendComplete()
+            }, err => {
+                error && error(err)
+                s.sendError(err)
+            })
+            return d
+        })
+    }
+
     finally(callBack) {
         return this.do(null, () => {
             callBack && callBack()
@@ -81,6 +102,103 @@ class Signal {
             callBack && callBack()
         })
     }
+
+    concat(signal) {
+        let nsignal = new Signal(s => {
+            let d = new CompoundDisposable()
+            d.addDisposable(this.subscribe(v => {
+                s.sendNext(v)
+            }, () => {
+                d.addDisposable(signal._subscribeProxy(s))
+            }, err => {
+                s.sendError(err)
+            }))
+            return d
+        })
+        return nsignal
+    }
+
+    static concat(signals) {
+        if (signals.length === 0) {
+            return Signal.empty()
+        }
+        return Signal.defer(() => {
+            let s = null
+            signals.forEach(signal => {
+                if (s == null) {
+                    s = signal
+                } else {
+                    s = s.concat(signal)
+                }
+            })
+            return s
+        })
+    }
+
+    startWith(value) {
+        return Signal.of(value).concat(this)
+    }
+
+    endWith(value) {
+        return this.concat(Signal.of(value))
+    }
+
+    replaced(signal) {
+        return new Signal(s => {
+            let replaced = false
+            let cb = () => { replaced = true }
+            let d = signal.do(cb, cb, cb)._subscribeProxy(s)
+            if (replaced) {
+                return d
+            } else {
+                let d1 = this.concat(Signal.never())._subscribeProxy(s)
+                return new Disposable(() => {
+                    d.dispose()
+                    d1.dispose()
+                })
+            }
+        })
+    }
+
+    replace(signal) {
+        return signal.replaced(this)
+    }
+
+    takeUntil(otherSignal) {
+        return new Signal(s => {
+            let d = new CompoundDisposable()
+            let d1 = otherSignal.subscribe(v => {
+                s.sendComplete()
+            }, () => {
+                s.sendComplete()
+            })
+            if (!d1.disposed) {
+                let d2 = this._subscribeProxy(s)
+                d.addDisposable(d1)
+                d.addDisposable(d2)
+            } else {
+                d.dispose()
+            }
+            return d
+        })
+    }
+    
+    //如果当前signal发送的value都是signal类型，我们需要每次接收到最新的值并订阅，同时取消前一个值的订阅
+    // switchToLates() {
+    //     return new Signal(s => {
+    //         let Connection = require('./connection')
+    //         let Subject = require('../subject/subject')
+    //         let con = new Connection(this, new Subject())
+    //         let d = con.subject.subscribe(v => {
+
+
+    //         }, () => {})
+    //     })
+    // }
+
+    // flattenMap(block) {
+        
+    // }
 
     map(mapf) {
         if (mapf == null) {
@@ -251,6 +369,8 @@ class Signal {
         })
         return signal
     }
+
+    
 
     skip(count) {
         let signal = new Signal(s => {
@@ -799,7 +919,11 @@ class Signal {
         return signal
     }
 
-    catchError(otherSignal) {
+    catchTo(otherSignal) {
+        return this.catchError(err => otherSignal)
+    }
+
+    catchError(signalBlock) {
         let signal = new Signal(s => {
             let d = new CompoundDisposable()
             d.addDisposable(this.subscribe(v => {
@@ -807,6 +931,7 @@ class Signal {
             }, () => {
                 s.sendComplete()
             }, err => {
+                let otherSignal = signalBlock(error)
                 d.addDisposable(otherSignal._subscribeProxy(s))
             }))
             return d
@@ -1021,40 +1146,7 @@ class Signal {
         }
     }
 
-    concat(signal) {
-        let nsignal = new Signal(s => {
-            let d = new CompoundDisposable()
-            d.addDisposable(this.subscribe(v => {
-                s.sendNext(v)
-            }, () => {
-                d.addDisposable(signal._subscribeProxy(s))
-            }, err => {
-                s.sendError(err)
-            }))
-            return d
-        })
-        return nsignal
-    }
-
-    static concat(signals) {
-        if (signals.length == 1) {
-            return signals[0]
-        } else {
-            let s = signals[0]
-            signals.filter((ss, i) => i > 0).forEach(ss => {
-                s = s.concat(ss)
-            })
-            return s
-        }
-    }
-
-    startWith(value) {
-        return Signal.of(value).concat(this)
-    }
-
-    endWith(value) {
-        return this.concat(Signal.of(value))
-    }
+    
 
     repeat(count) {
         if (count <= 0) {
