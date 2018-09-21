@@ -102,4 +102,32 @@ Signal.of(4)
  *after error or complete
  */
 ```
+### 数据流的衔接
+#### concat(otherSignal)
+当前的signal在结束之后，紧接着订阅otherSignal
+#### starWith(value)
+Signal.of(value)放在当前流的前面
+#### endWith(value)
+Signal.of(value)放在当前流的后面
+#### then(otherSignal)
+当前的signal在结束之后(忽略当前signal的next发送的值)，紧接着订阅otherSignal
+#### takeUntil(otherSignal)
+订阅当前Signal，直到otherSignal有值或者是complete消息过来
+#### replaced(otherSignal)
+订阅当前的signal，直到otherSignal有任意的数据(包括error/complete)过来，并且紧接着订阅otherSignal
+#### replace(otherSignal)
+订阅otherSignal，直到当前signal有任意的数据过来，并且紧接着订阅当前的signal
+```
+//依次打印-2，-1，-0，1，2，3，4；如果最后的4000ms变为比3000ms小的数值打印就会变成-2，-1，0，4
+Signal.of(2)
+   // .do((v) => console.log('do next + ' + v), () => console.log('do complete'))
+   // .initially(() => console.log('before subscribe'))
+   // .finally(() => console.log('after complete'))
+   .startWith(1)
+   .endWith(3)
+   .delay(3000)
+   .replace(Signal.fromArray([-2,-1,0]))
+   .replaced(Signal.of(4).delay(4000))
+   .subscribeNext(v => console.log('real v ' + v))
+```
 # 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
