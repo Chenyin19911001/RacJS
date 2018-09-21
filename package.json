@@ -1,0 +1,17 @@
+{
+  "name": "racjs",
+  "version": "1.0.0",
+  "description": "implementation of RAC(OC) on JavaScript and replacement of RxJS",
+  "main": "./src/index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chenyin19911001/RacJS.git"
+  },
+  "author": "Chenyin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Chenyin19911001/RacJS/issues"
+  },
+  "homepage": "https://github.com/Chenyin19911001/RacJS#readme"
+}
