@@ -74,6 +74,14 @@ command.execute(2).subscribe(next, complete)
 快速创建错误的signal
 #### static never()
 快速创建一个不会自己结束且空的signal
+#### static fromArray(arr)
+快速创建一个包含数组元素的signal
+#### static fromRange(start, count, distance = 1)
+快速创建一个signal,signal的数据依次从start开始，每次增加distance，叠加count次
+#### static fromPromise(promise)
+快速创建一个signal,promise then作为signal的数据+complete，catch作为signal的error
+#### static interval(time, start = 0)
+快速创建一个signal,从start开始，每time时间发送start+1
 ### 订阅流程附加操作
 #### initially(block)
 在订阅开始前注入操作
@@ -94,4 +102,4 @@ Signal.of(4)
  *after error or complete
  */
 ```
-  
+# 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
