@@ -33,7 +33,7 @@ class Signal {
         })
     }
 
-    subscribe(next, complete, error, isProxy = true) {
+    subscribe(next, complete, error) {
         let s = new Subscriber(next, complete, error)
         return this._subscribeProxy(s)
     }
@@ -54,16 +54,16 @@ class Signal {
         })
     }
 
-    subscribeNext(next, isProxy = true) {
-        return this.subscribe(next, null, null, isProxy)
+    subscribeNext(next) {
+        return this.subscribe(next, null, null)
     }
 
     subscribeError(error, isProxy = true) {
-        return this.subscribe(null, null, error, isProxy)
+        return this.subscribe(null, null, error)
     }
 
     subscribeComplete(complete, isProxy = true) {
-        return this.subscribe(null, complete, null, isProxy)
+        return this.subscribe(null, complete, null)
     }
 
     _subscribeProxy(s) {
