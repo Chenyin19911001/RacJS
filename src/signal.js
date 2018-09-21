@@ -422,30 +422,34 @@ class Signal {
     buffer(otherSignal) {
         let signal = new Signal(s => {
             let buffers = []
-            let sendBuffers = () => {
+            let bufferComplete = false
+            let sendBuffers = (forceComplete) => {
                 if (buffers.length > 0) {
                     s.sendNext(buffers)
-                    buffers
+                    buffers = []
+                }
+                if (bufferComplete || forceComplete) {
+                    s.sendComplete()
                 }
             }
-            let d = new CompoundDisposable()
-            d.addDisposable(this.subscribe(v => {
+            let d = this.subscribe(v => {
                 buffers.push(v)
             }, () => {
-                sendBuffers()
-                s.sendComplete()
+                bufferComplete = true
             }, err => {
                 s.sendError(err)
-            }))
-            d.addDisposable(otherSignal.subscribe(v => {
-                sendBuffers()
+            })
+            let d2 = otherSignal.subscribe(v => {
+                sendBuffers(false)
             }, () => {
-                sendBuffers()
-                s.sendComplete()
+                sendBuffers(true)
             }, err => {
                 s.sendError(err)
-            }))
-            return d
+            })
+            return new Disposable(() => {
+                d.dispose()
+                d2.dispose()
+            })
         })
         return signal
     }
