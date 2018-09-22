@@ -149,5 +149,9 @@ Signal.of(2)
 #### elementAt(index, defaultValue)
 找出signal里面的第index的值，如果不存在就发送defaultValue
 #### scan((sourceValue, nowValue, index) => desValue, seed, useFirst)
+usefirst ? 使用signal的第一个值作为sourceValue ：使用seed作为sourceValue
+signal每次发出的数据nowValue，都会经过第一个函数的处理变成新的数据发送出去，同时将最新的值作为下一次的sourceValue
+#### reduce((sourceValue, nowValue, index) => desValue, seed, useFirst)
+取scan中的最后一个值
 
 # 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
