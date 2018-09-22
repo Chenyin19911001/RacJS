@@ -65,7 +65,7 @@ command.execute(2).subscribe(next, complete)
 ```
 ## 核心--Signal常用操作
 有些很复杂的操作在这边不做解释，想了解的可以看代码，主要是为了其他方法的封装操作
-### 简单Signal创建操作
+### 1）简单Signal创建操作
 #### static of(value)
 快速创建一个只有一个数据Value的signal
 #### static empty()
@@ -82,7 +82,7 @@ command.execute(2).subscribe(next, complete)
 快速创建一个signal,promise then作为signal的数据+complete，catch作为signal的error
 #### static interval(time, start = 0)
 快速创建一个signal,从start开始，每time时间发送start+1
-### 订阅流程附加操作
+### 2）订阅流程附加操作
 #### initially(block)
 在订阅开始前注入操作
 #### do(next,complete,error)
@@ -102,7 +102,7 @@ Signal.of(4)
  *after error or complete
  */
 ```
-### 数据流的衔接
+### 3）数据流的衔接
 #### concat(otherSignal)
 当前的signal在结束之后，紧接着订阅otherSignal
 #### starWith(value)
@@ -130,4 +130,24 @@ Signal.of(2)
    .replaced(Signal.of(4).delay(4000))
    .subscribeNext(v => console.log('real v ' + v))
 ```
+### 4）类数组操作
+将数据流里面所有的数据想象成一个数组处理
+#### map((v,index) => otherV)
+将signal里面的数据都做了一个映射
+#### mapTo(v)
+将signal里面的数据都映射成一个值
+#### filter((v,index) => boolean)
+将signal中不符合条件的都过滤掉
+#### every((v,index) => boolean)
+判断signal的所有数据是不是满足条件
+#### some((v,index) => boolean)
+判断signal有没有数据满足条件
+#### find((v,index) => boolean)
+找出signal中第一个满足条件的值
+#### findIndex((v,index) => boolean)
+找出signal中第一个满足条件的值的index
+#### elementAt(index, defaultValue)
+找出signal里面的第index的值，如果不存在就发送defaultValue
+#### scan((sourceValue, nowValue, index) => desValue, seed, useFirst)
+
 # 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
