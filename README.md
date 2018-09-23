@@ -206,6 +206,19 @@ signal每次发出的数据nowValue，都会经过第一个函数的处理变成
 
 #### static merge(signals:Array<Signal>)
    merge的类方法
+   
+#### zip(signals:Array<Signal>)
+   将当前流和传入的流数组进行打包形成一个新的流，每当打包内的所有流都有了新的数据，新的流就会将这些流的数据打包成一个数组发送，如果有一个流发生（错误）了，那么新的流也就完成了。任意一个流既没有新的数据且完成了，新的流就会发送完成
+   
+#### static zip(signals:Array<Signal>)
+   zip的类方法
 
+#### switchToLastest()
+   如果当前流发送的值都是signal类型，每发送新的值就会订阅该值，同时取消前一次的订阅
+   
+#### switchCase(signalMap,defaultSignal)
+   根据当前的值从signalMap中找到对应的signal，并订阅，同时取消上一次的订阅
+#### ifelse(trueSignal, falseSignal)
+   根据当前的值是否，订阅对应的signal
 
 # 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
