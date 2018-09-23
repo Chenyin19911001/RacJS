@@ -212,6 +212,12 @@ signal每次发出的数据nowValue，都会经过第一个函数的处理变成
    
 #### static zip(signals:Array<Signal>)
    zip的类方法
+   
+#### combine(signals:Array<Signal>)
+   将当前流和传入的流数组进行联系起来，每当有一个流发送了一个新的数据且所有的流都有数据的时，新的流就会将这边流的最新的数组打包成一个数组发送。所有流完成，新流才会完成；任意一个流错误，新流就会错误
+
+#### static combine(signals:Array<Signal>)
+   combine的类方法
 
 #### switchToLastest()
    如果当前流发送的值都是signal类型，每发送新的值就会订阅该值，同时取消前一次的订阅
