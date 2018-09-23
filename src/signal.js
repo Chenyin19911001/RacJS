@@ -355,6 +355,11 @@ class Signal {
         return signal
     }
 
+
+    ignoreValues() {
+        return this.filter(v => false)
+    }
+
     every(everyf) {
         let signal = new Signal(s => {
             let index = 0
@@ -397,6 +402,130 @@ class Signal {
             }, () => {
                 s.sendNext(false)
                 s.sendComplete()
+            }, err => {
+                s.sendError(err)
+            })
+            return d
+        })
+        return signal
+    }
+
+
+    find(findf, isIndex = false) {
+        let signal = new Signal(s => {
+            let index = 0
+            let d = this.subscribe(v => {
+                try {
+                    let ret = findf(v, index)
+                    index++
+                    if (ret) {
+                        s.sendNext(isIndex ? index : v)
+                        s.sendComplete()
+                    }
+                } catch(e) {
+                    s.sendError(e)
+                }
+            }, () => {
+                s.sendNext(isIndex ? -1 : null)
+                s.sendComplete()
+            }, err => {
+                s.sendError(err)
+            })
+            return d
+        })
+        return signal
+    }
+
+    findIndex(findf) {
+        return this.find(findf, true)
+    }
+
+    elementAt(index, defaultValue) {
+        let signal = new Signal(s => {
+            let nindex = 0
+            let d = this.subscribe(v => {
+                if (nindex === index) {
+                    s.sendNext(v)
+                    s.sendComplete()
+                } else {
+                    nindex++
+                }
+            }, () => {
+                defaultValue && s.sendNext(defaultValue)
+                s.sendComplete()
+            }, err => {
+                s.sendError(err)
+            })
+            return d
+        })
+        return signal
+    }
+
+    scan(scanf, seed, useFirst) {
+        let signal = new Signal(s => {
+            let index = 0
+            let initial = seed
+            let d = this.subscribe(v => {
+                if (useFirst && index == 0) {
+                    s.sendNext(v)
+                    initial = v
+                } else {
+                    try {
+                        let ret = scanf(initial, v, index)
+                        s.sendNext(ret)
+                        initial = ret
+                    } catch(e) {
+                        s.sendError(e)
+                    }
+                }
+                index++
+            }, () => {
+                s.sendComplete()
+            }, err => {
+                s.sendError(err)
+            })
+            return d
+        })
+        return signal
+    }
+
+    reduce(reducef, initial, useFirst) {
+        return this.scan(reducef, initial, useFirst).takeLast(1)
+    }
+
+    isEmpty() {
+        let signal = new Signal(s => {
+            let d = this.subscribe(v => {
+                s.sendNext(false)
+                s.sendComplete()
+            }, () => {
+                s.sendNext(true)
+                s.sendComplete()
+            }, err => {
+                s.sendError(err)
+            })
+            return d
+        })
+        return signal
+    }
+
+    ifEmpty(dValue, throwError = false) {
+        let signal = new Signal(s => {
+            let _isEmpty = true
+            let d = this.subscribe(v => {
+                _isEmpty = false
+                s.sendNext(v)
+            }, () => {
+                if (_isEmpty) {
+                    if (throwError) {
+                        s.sendError(new Error('empty signal'))
+                    } else {
+                        dValue && s.sendNext(dValue)
+                        s.sendComplete()
+                    }
+                } else {
+                    s.sendComplete()
+                }
             }, err => {
                 s.sendError(err)
             })
@@ -470,8 +599,6 @@ class Signal {
         })
         return signal
     }
-
-    
 
     skip(count) {
         let signal = new Signal(s => {
@@ -556,76 +683,6 @@ class Signal {
                 } else {
                     s.sendError(err)
                 }
-            })
-            return d
-        })
-        return signal
-    }
-
-    find(findf, isIndex = false) {
-        let signal = new Signal(s => {
-            let index = 0
-            let d = this.subscribe(v => {
-                try {
-                    let ret = findf(v, index)
-                    index++
-                    if (ret) {
-                        s.sendNext(isIndex ? index : v)
-                        s.sendComplete()
-                    }
-                } catch(e) {
-                    s.sendError(e)
-                }
-            }, () => {
-                s.sendNext(isIndex ? -1 : null)
-                s.sendComplete()
-            }, err => {
-                s.sendError(err)
-            })
-            return d
-        })
-        return signal
-    }
-
-    findIndex(findf) {
-        return this.find(findf, true)
-    }
-
-    isEmpty() {
-        let signal = new Signal(s => {
-            let d = this.subscribe(v => {
-                s.sendNext(false)
-                s.sendComplete()
-            }, () => {
-                s.sendNext(true)
-                s.sendComplete()
-            }, err => {
-                s.sendError(err)
-            })
-            return d
-        })
-        return signal
-    }
-
-    ifEmpty(dValue, throwError = false) {
-        let signal = new Signal(s => {
-            let _isEmpty = true
-            let d = this.subscribe(v => {
-                _isEmpty = false
-                s.sendNext(v)
-            }, () => {
-                if (_isEmpty) {
-                    if (throwError) {
-                        s.sendError(new Error('empty signal'))
-                    } else {
-                        dValue && s.sendNext(dValue)
-                        s.sendComplete()
-                    }
-                } else {
-                    s.sendComplete()
-                }
-            }, err => {
-                s.sendError(err)
             })
             return d
         })
@@ -740,59 +797,6 @@ class Signal {
         return signal
     }
 
-    elementAt(index, defaultValue) {
-        let signal = new Signal(s => {
-            let nindex = 0
-            let d = this.subscribe(v => {
-                if (nindex === index) {
-                    s.sendNext(v)
-                    s.sendComplete()
-                } else {
-                    nindex++
-                }
-            }, () => {
-                defaultValue && s.sendNext(defaultValue)
-                s.sendComplete()
-            }, err => {
-                s.sendError(err)
-            })
-            return d
-        })
-        return signal
-    }
-
-    scan(scanf, seed, useFirst) {
-        let signal = new Signal(s => {
-            let index = 0
-            let initial = seed
-            let d = this.subscribe(v => {
-                if (useFirst && index == 0) {
-                    s.sendNext(v)
-                    initial = v
-                } else {
-                    try {
-                        let ret = scanf(initial, v, index)
-                        s.sendNext(ret)
-                        initial = ret
-                    } catch(e) {
-                        s.sendError(e)
-                    }
-                }
-                index++
-            }, () => {
-                s.sendComplete()
-            }, err => {
-                s.sendError(err)
-            })
-            return d
-        })
-        return signal
-    }
-
-    reduce(reducef, initial, useFirst) {
-        return this.scan(reducef, initial, useFirst).takeLast(1)
-    }
-
     delay(time) {
         let signal = new Signal(s => {
             let idss = []
@@ -830,10 +834,6 @@ class Signal {
                 d.dispose()
             })
         })
-    }
-
-    ignoreValues() {
-        return this.filter(v => false)
     }
 
     distinct(keySelector) {
@@ -1232,14 +1232,19 @@ class Signal {
             let allCompleted = allSignals.map(i => false)
             let d = new CompoundDisposable()
             allSignals.forEach((signal, index) => {
+                if (d.disposed()) {
+                    return
+                }
                 d.addDisposable(signal.subscribe(v => {
                     s.sendNext(v)
                 }, () => {
                     allCompleted[index] = true
                     if (allCompleted.every(cp => cp)) {
+                        d.dispose()
                         s.sendComplete()
                     }
                 }, err => {
+                    d.dispose()
                     s.sendError(err)
                 }))
             })
