@@ -105,6 +105,8 @@ Signal.of(4)
 ### 3）数据流的衔接
 #### concat(otherSignal)
 当前的signal在结束之后，紧接着订阅otherSignal
+#### static concat(signals)
+concat的类方法
 #### starWith(value)
 Signal.of(value)放在当前流的前面
 #### endWith(value)
@@ -193,12 +195,17 @@ signal每次发出的数据nowValue，都会经过第一个函数的处理变成
 #### materialize()
 把signal的数据，完成，错误都包装成Notification对象发送出去
 #### dematerialize()
-将包装成的Notification恢复成值，完成，错误发送出去
+   将包装成的Notification恢复成值，完成，错误发送出去
 #### repeat(count)
-如果成功了，重复订阅当前的signal几次
+   如果成功了，重复订阅当前的signal几次
 #### retry(count)
-如果错误，重复订阅当前的signal几次
+   如果错误，重复订阅当前的signal几次
+### 6）多流操作
+#### merge(signals:Array<Signal>)
+   将当前流和传入的流数组合并成一个新的流，所有流的数据都会被当成新流的数据。只有当所有流都完成了，新流才会完成；只要有一个流发生错误，心新流就会发生错误
 
+#### static merge(signals:Array<Signal>)
+   merge的类方法
 
 
 # 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
