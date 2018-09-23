@@ -138,6 +138,8 @@ Signal.of(2)
 将signal里面的数据都映射成一个值
 #### filter((v,index) => boolean)
 将signal中不符合条件的都过滤掉
+#### ignoreValues()
+过滤所有的值，只关心完成和错误
 #### every((v,index) => boolean)
 判断signal的所有数据是不是满足条件
 #### some((v,index) => boolean)
@@ -153,5 +155,27 @@ usefirst ? 使用signal的第一个值作为sourceValue ：使用seed作为sourc
 signal每次发出的数据nowValue，都会经过第一个函数的处理变成新的数据发送出去，同时将最新的值作为下一次的sourceValue
 #### reduce((sourceValue, nowValue, index) => desValue, seed, useFirst)
 取scan中的最后一个值
+#### isEmpty()
+判断当前signal是不是没有数据
+#### ifEmpty(defaultValue, throwError)
+如果signal为空，是发送defaultValue，还是发送一个空的错误
+#### take(count)
+取前count的数据
+#### takeLast(count)
+取最后几个数据
+#### takeWhile(v => boolean)
+一直取到signal的数据中第一个不满足条件为止
+#### fisrt()
+取第一个
+#### last()
+取最后一个
+#### skip(count)
+从第count开始取
+#### skipLast(count)
+最后几个不取
+#### skipWhile
+从signal的数据中第一个满足条件开始取
+#### count()
+获取当前signal包含的数据总长度
 
 # 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
