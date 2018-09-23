@@ -117,6 +117,10 @@ Signal.of(value)放在当前流的后面
 订阅当前的signal，直到otherSignal有任意的数据(包括error/complete)过来，并且紧接着订阅otherSignal
 #### replace(otherSignal)
 订阅otherSignal，直到当前signal有任意的数据过来，并且紧接着订阅当前的signal
+#### catchError(error => signal)
+如果当前signal发生错误，就根据错误生成新的signal，并且紧接着订阅这signal
+#### catchTo(otherSignal: Signal)
+如果当前signal发生错误，并且紧接着订阅新的otherSignal
 ```
 //依次打印-2，-1，-0，1，2，3，4；如果最后的4000ms变为比3000ms小的数值打印就会变成-2，-1，0，4
 Signal.of(2)
@@ -177,5 +181,24 @@ signal每次发出的数据nowValue，都会经过第一个函数的处理变成
 从signal的数据中第一个满足条件开始取
 #### count()
 获取当前signal包含的数据总长度
+### 5）其他工具类操作
+#### bufferCount(count)
+将源signal的数据每几个一组发送出去
+#### distinct(v => key:String)
+如果当前的值经过转换为key，发现key已经存在，该值就会被过滤掉
+#### distinctUntilKeyChanged(v => key:String)
+如果当前的值经过转换为key，和上一次值的key一样，该值就会被过滤掉
+#### distinctUntilValueChanged()
+如果当前的值和上一次一样，该值就会被过滤掉
+#### materialize()
+把signal的数据，完成，错误都包装成Notification对象发送出去
+#### dematerialize()
+将包装成的Notification恢复成值，完成，错误发送出去
+#### repeat(count)
+如果成功了，重复订阅当前的signal几次
+#### retry(count)
+如果错误，重复订阅当前的signal几次
+
+
 
 # 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
