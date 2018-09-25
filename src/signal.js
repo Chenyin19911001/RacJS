@@ -758,7 +758,9 @@ class Signal {
         let signal = new Signal(s => {
             let buffers = []
             let timeoutId
+            let readySended = true
             let sendNext = (isComplete) => {
+                readySended = true
                 if (timeoutId) {
                     clearTimeout(timeoutId)
                     timeoutId = null
@@ -782,11 +784,12 @@ class Signal {
                 }
             }
             let d = this.subscribe(v => {
-                if (buffers.length === 0) {
+                if (readySended) {
                     timeoutId = setTimeout(() => {
                         sendNext(false)
                     }, time)
                 }
+                readySended = false
                 buffers.push(v)                
             }, () => {
                 sendNext(true)
@@ -981,7 +984,8 @@ class Signal {
         let hasValue = false
         let timeoutId = null
         let signal = new Signal(s => {
-            let d = this.subscribe(v => {
+            let d = new CompoundDisposable()
+            d.addDisposable(this.subscribe(v => {
                 if (!hasValue) {
                     s.sendNext(v)
                     hasValue = true
@@ -991,13 +995,21 @@ class Signal {
                     }, time)
                 }
             }, () => {
+                d.dispose()
                 s.sendComplete()
             }, err => {
+                d.dispose()
                 s.sendError(err)
-            })
-            d.addDisposable(new Disposable(() => {
-                timeoutId && clearTimeout(timeoutId)
             }))
+            if (d.disposed) {
+                timeoutId && clearTimeout(timeoutId)
+                timeoutId = null
+            } else {
+                d.addDisposable(new Disposable(() => {
+                    timeoutId && clearTimeout(timeoutId)
+                    timeoutId = null
+                }))
+            }
             return d
         })
         return signal
@@ -1013,16 +1025,44 @@ class Signal {
                 timeoutId = setTimeout(() => {
                     s.sendNext(blockValue)
                     blockValue = defaultValue
+                    timeoutId = null
                 }, time)
             }, () => {
+                timeoutId && clearTimeout(timeoutId)
+                timeoutId = null
                 if (blockValue !== defaultValue) {
                     s.sendNext(blockValue)
                 }
                 s.sendComplete()
             }, err => {
-                if (blockValue !== defaultValue) {
-                    s.sendNext(blockValue)
+                s.sendError(err)
+            })
+            return new Disposable(() => {
+                d.dispose()
+                timeoutId && clearTimeout(timeoutId)
+            })
+            return d
+        })
+        return signal
+    }
+
+    auditTime(time) {
+        let timeoutId = null
+        let blockValue = defaultValue
+        let signal = new Signal(s => {
+            let d = this.subscribe(v => {
+                if (blockValue === defaultValue) {
+                    s.sendNext(v)
+                    blockValue = v
                 }
+                timeoutId && clearTimeout(timeoutId)
+                timeoutId = setTimeout(() => {
+                    blockValue = defaultValue
+                    timeoutId = null
+                }, time)
+            }, () => {
+                s.sendComplete()
+            }, err => {
                 s.sendError(err)
             })
             return new Disposable(() => {
