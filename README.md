@@ -226,5 +226,18 @@ signal每次发出的数据nowValue，都会经过第一个函数的处理变成
    根据当前的值从signalMap中找到对应的signal，并订阅，同时取消上一次的订阅
 #### ifelse(trueSignal, falseSignal)
    根据当前的值是否，订阅对应的signal
+### 7）一些时间类操作
+#### delay(time)
+将当前流的所有数据和完成错误信息都延迟发送
+#### debounceTime(time)
+防抖，一定时间内只接收第一次的数据
+#### throttleTime(time)
+防抖，在接收到最新的数据后且一定时间内没有数据过来后，发送这个最新值（先等待再发送）
+#### auditTime(time)
+防抖，在一定时间内没有数据过来后，发送下一次接收到的值（先发送再等待）
+#### bufferTime(time, count=0)
+每次有数据后，都会在固定的时间读取缓冲池中的数据，缓冲池的大小由count决定，0代表无限大
+#### timeout(time)
+在一定的时间内如果没有完成，就会发送超时错误
 
 # 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
