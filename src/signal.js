@@ -757,7 +757,12 @@ class Signal {
     bufferTime(time, count = 0) {
         let signal = new Signal(s => {
             let buffers = []
+            let timeoutId
             let sendNext = (isComplete) => {
+                if (timeoutId) {
+                    clearTimeout(timeoutId)
+                    timeoutId = null
+                }
                 if (buffers.length === 0) {
                     return
                 }
@@ -776,12 +781,13 @@ class Signal {
                     }
                 }
             }
-            let timeoutId
             let d = this.subscribe(v => {
-                buffers.push(v)
-                timeoutId = setTimeout(() => {
-                    sendNext(false)
-                }, time)
+                if (buffers.length === 0) {
+                    timeoutId = setTimeout(() => {
+                        sendNext(false)
+                    }, time)
+                }
+                buffers.push(v)                
             }, () => {
                 sendNext(true)
                 s.sendComplete()
@@ -792,7 +798,6 @@ class Signal {
                 d.dispose()
                 timeoutId && clearTimeout(timeoutId)
             })
-            return d
         })
         return signal
     }
@@ -1146,6 +1151,9 @@ class Signal {
             let allCompleted = allSignals.map(i => false)
             let d = new CompoundDisposable()
             allSignals.forEach((signal, index) => {
+                if (d.disposed()) {
+                    return
+                }
                 d.addDisposable(signal.subscribe(v => {
                     rets[index] = v
                     if (rets.every(vv => vv != defaultValue)) {
@@ -1155,9 +1163,11 @@ class Signal {
                 }, () => {
                     allCompleted[index] = true
                     if (allCompleted.every(cp => cp)) {
+                        d.dispose()
                         s.sendComplete()
                     }
                 }, err => {
+                    d.dispose()
                     s.sendError(err)
                 }))
             })
@@ -1203,6 +1213,9 @@ class Signal {
             }
             let d = new CompoundDisposable()
             allSignals.forEach((signal, index) => {
+                if (d.disposed) {
+                    return
+                }
                 d.addDisposable(signal.subscribe(v => {
                     vArrays[index].values.push(v)
                     sendNext()
@@ -1210,6 +1223,7 @@ class Signal {
                     vArrays[index].completed = true
                     sendComplete()
                 }, err => {
+                    d.dispose()
                     s.sendError(err)
                 }))
             })
@@ -1260,8 +1274,6 @@ class Signal {
             return signals[0].merge(signals.filter((s, i) => i > 0))
         }
     }
-
-    
 
     repeat(count) {
         if (count <= 0) {
