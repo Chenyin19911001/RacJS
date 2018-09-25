@@ -948,7 +948,7 @@ class Signal {
         return signal
     }
 
-    debounce(otherSignal) {
+    takeLatest(otherSignal) {
         let signal = new Signal(s => {
             let latestValue = defaultValue
             let sendLatestValue = () => {
@@ -957,25 +957,27 @@ class Signal {
                     latestValue = defaultValue
                 }
             }
-            let d = this.subscribe(v => {
+            let d = new CompoundDisposable()
+            d.addDisposable(this.subscribe(v => {
                 latestValue = v
             }, () => {
-                sendLatestValue()
-                s.sendComplete()
-            }, err => {
-                s.sendError(err)
-            })
-            let d2 = otherSignal.subscribe(v => {
-                sendLatestValue()
-            }, () => {  
-                s.sendComplete()
-            }, err => {
-                s.sendError(err)
-            })
-            return new Disposable(() => {
                 d.dispose()
-                d2.dispose()
-            })
+                s.sendComplete()
+            }, err => {
+                d.dispose()
+                s.sendError(err)
+            }))
+            if (!d.disposed) {
+                d.addDisposable(otherSignal.subscribe(v => {
+                    sendLatestValue()
+                }, () => {
+                    sendLatestValue() 
+                    s.sendComplete()
+                }, err => {
+                    s.sendError(err)
+                }))
+            }
+            return d
         })
         return signal
     }
@@ -1096,7 +1098,9 @@ class Signal {
 
     subscribeOn(type) {
         if (type == 'sync') {
-            return this
+            return new Signal(s => {
+                return this._subscribeProxy(s)
+            })
         }
         if (type == 'async') {
             return new Signal(s => {
@@ -1121,7 +1125,9 @@ class Signal {
 
     observeOn(type) {
         if (type == 'sync') {
-            return this
+            return new Signal(s => {
+                return this._subscribeProxy(s)
+            })
         }
         if (type == 'async') {
             let signal = new Signal(s => {
@@ -1141,7 +1147,7 @@ class Signal {
                 })
                 d.addDisposable(new Disposable(() => {
                     idss.forEach(id => {
-                        clearTimeout(id)
+                        id && clearTimeout(id)
                     })
                     idss = null
                 }))
