@@ -239,5 +239,15 @@ signal每次发出的数据nowValue，都会经过第一个函数的处理变成
 每次有数据后，都会在固定的时间读取缓冲池中的数据，缓冲池的大小由count决定，0代表无限大
 #### timeout(time)
 在一定的时间内如果没有完成，就会发送超时错误
+#### buffer(othersignal)
+每当otherSignal有新的值/完成，就会发送当前signal的缓冲池
+#### takeLatest(otherSignal)
+每当otherSignal有新的值/完成，就会发送当前signal的最新值
+### 8）线程操作
+在RacJs中，弱化了RxJs里面的schedule概念，只提供了异步订阅/发送的两个操作
+#### subscribeOn(schedule)
+sync/async/asap,决定当前的订阅操作在哪个线程执行
+#### observeOn(schedule)
+sync/async/asap,决定当前的发送数据操作在哪个线程执行
 
 # 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
