@@ -123,6 +123,8 @@ class Store {
   }
 }
 
+module.exports = Store
+
 function containDep(value, keys) {
   if (keys === '*') {
     return true
