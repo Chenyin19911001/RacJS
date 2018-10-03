@@ -249,5 +249,9 @@ signal每次发出的数据nowValue，都会经过第一个函数的处理变成
 sync/async/asap,决定当前的订阅操作在哪个线程执行
 #### observeOn(schedule)
 sync/async/asap,决定当前的发送数据操作在哪个线程执行
+# RacX
+基于RacJs实现的类似于redux/mobx的共享数据流框架
+```
+```
 
 # 未完，待补充。如果有问题，或者发现bug，请发邮件[472077629@qq.com]  
