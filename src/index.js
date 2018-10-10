@@ -13,19 +13,19 @@ const ChannelTerminal = require('./channel/channelTerminal')
 const Command = require('./command/command')
 
 module.exports = {
-	Signal,
-	Subject,
-	ReplaySubject,
-	CurrentSubject,
-	Subscriber,
-	ProxySubscriber,
-	Disposable,
-	CompoundDisposable,
-	Connection,
-	Notification,
-	Channel,
-	ChannelTerminal,
-	Command
+  Signal,
+  Subject,
+  ReplaySubject,
+  CurrentSubject,
+  Subscriber,
+  ProxySubscriber,
+  Disposable,
+  CompoundDisposable,
+  Connection,
+  Notification,
+  Channel,
+  ChannelTerminal,
+  Command
 }
 
 
