@@ -260,16 +260,13 @@ const config = {
     c: {
       aa: 1
     },
-    d: observable
+    d: someObservable
   },
   computed: {
     total: {
-      dep: 'a',
       value: function() {
         return this.a.length
-      },
-      sync: true,
-      lazy: false
+      }
     },
     total2: function() {
       return this.a[1] + 2
@@ -283,14 +280,17 @@ const config = {
   }
 }
 let store = new Store(config)
-store.inject(() => {
+store.autoRun(() => {
   console.log(store.total)
+})
+store.autoRun({
+  sync:true,
+  subscriber: () => console.log(store.total)
 })
 store.inject({
   sync:true,
-  dep:[...]
-  subscriber: () => {
-  }
+  dep: ['xxx', 'xxx2'],
+  subscriber: () => console.log(store.total)
 })
 ```
 如上代码：根据config生成一个store, config主要包括3部分。
@@ -304,20 +304,21 @@ store的唯一标志，标志当前依赖的最外层key。后续computed中的t
 4）observable：自己定义的某种数据流对象，满足一定的接口即可
 ### computed
 定义store中被观察的但是需要由observable中的数据计算而来的。每一个computed的也是一个配置。
-dep：声明依赖，默认为全依赖
-value：计算逻辑，
-sync：是否在依赖发生变化的时候同步计算，默认值为false
-lazy：是否在初始的时候就计算一次，还是在被使用的时候再计算，默认false
-如果只有value，其他使用默认值，可以直接传入一个function
+dep：声明依赖
+value：计算逻辑
+如果配置直接是一个function，那么就将该function作为value处理
+如果没有声明dep，那么store会自动计算该value涉及到的依赖
 
 ## 监听store
-在业务层监听store，需要调用store的inject方法，方法传入一个watch的config。
+在业务层监听store，需要调用store的inject/autoRun方法，方法传入一个watch的config。
 dep：声明依赖，默认为全依赖
 subscriber：监听函数，
 sync：是否在依赖发生变化的时候同步调用监听，默认值为false
 如果只有subscriber，其他使用默认值，可以直接传入一个function
 该方法返回一个disposable
 如果想接触监听的话，直接调用disposable.dispose()方法
+如果声明了监听的dep，建议调用inject方法；没有声明，建议调用autoRun方法，自动获取依赖
+注：如果声明了dep，且调用了autoRun方法，自动获取依赖的值会覆盖声明的依赖dep；自动获取依赖会手动调用一次监听函数
 
 ## 废弃store
 如果当前的store不是一个全局的，需要在合适的时候解除store，可以调用store.clear()方法
