@@ -18,6 +18,9 @@ function getOuterKey(subscription, key) {
       key.substr(1)
     )
   }
+  if (!subscription.subscriptionKeyInParentKey) {
+    return key
+  }
   return subscription.subscriptionKeyInParentKey + '.' + key
 }
 
@@ -30,10 +33,7 @@ function subscribe(parentSubscription, childSubcription, key) {
   let newDisposable = childSubcription.subject.subscribeNext(value => {
     sendNext(parentSubscription, value)
   })
-  parentSubscription.disposableMap[key] = new Disposable(() => {
-    newDisposable.dispose()
-    dispose(childSubcription)
-  })
+  parentSubscription.disposableMap[key] = newDisposable
 }
 
 function disposeKey(subscription, key) {
@@ -67,11 +67,11 @@ function dispose(subcription) {
 }
 
 class Subscription {
-  constructor(type, key) {
+  constructor(type) {
     this.type = type
     this.subject = new Subject()
     this.disposableMap = {}
-    this.subscriptionKeyInParentKey = key || ''
+    this.subscriptionKeyInParentKey = ''
   }
 }
 

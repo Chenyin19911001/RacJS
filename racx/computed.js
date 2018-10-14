@@ -9,10 +9,8 @@ class Computed {
       this.valueFunc = config.value
       let dep = config.dep
       if (dep) {
-        if (Array.isArray(dep)) {
-          dep = dep.map(d => store.racx_property_key + '.' + d)
-        } else {
-          dep = [store.racx_property_key + '.' + dep]
+        if (!Array.isArray(dep)) {
+          dep = [dep]
         }
         this.dep = dep
         this.value = this.valueFunc.call(this.store)
@@ -23,11 +21,12 @@ class Computed {
   }
 
   autoDep() {
-  	this.store.racx_property_isCollectingDep = true
+  	this.store.racxAutoRun = true
+    this.store.racxTempDeps = []
     this.value = this.valueFunc.call(this.store)
-    this.dep = this.store.racx_property_collectDeps
-    this.store.racx_property_collectDeps = []
-    this.store.racx_property_isCollectingDep = false
+    this.dep = this.store.racxTempDeps
+    this.store.racxTempDeps = []
+    this.store.racxAutoRun = false
   }
 
   computed() {

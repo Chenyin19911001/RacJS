@@ -16,18 +16,21 @@ const {
   Subscription
 } = require('./subscription')
 
-function getHookValue(value, key) {
+function getHookValue(value) {
+  if (value.$racxSubscription) {
+    return value
+  }
   let type = getValueType(value)
   let o = value
   switch (type) {
     case ValueTypePlain:
-      o = hookPlainObject(value, key)
+      o = hookPlainObject(value)
       break
     case ValueTypeObservable:
-      o = hookObservable(value, key)
+      o = hookObservable(value)
       break
     case ValueTypeArray:
-      o = hookArray(value, key)
+      o = hookArray(value)
       break
     case ValueTypeSimple:
       break
@@ -35,13 +38,17 @@ function getHookValue(value, key) {
   return o
 }
 
-function addPlainObjectProperty(object, key, ovalue) {
-  transformSubscriptionValue(object, key, ovalue, true)
+function extendsObservableProperty(object, key, ovalue) {
+  if (object.$context.hasOwnProperty(key)) {
+    transformSubscriptionValue(object, key, ovalue, false)
+    return
+  }
+  transformSubscriptionValue(object, key, ovalue, false)
   Object.defineProperty(object, key, {
     enumerable: true,
     configurable: true,
     get: function() {
-      return object.__context[key]
+      return object.$context[key]
     },
     set: function(value) {
       transformSubscriptionValue(object, key, value, false)
@@ -49,13 +56,13 @@ function addPlainObjectProperty(object, key, ovalue) {
   })
 }
 
-function hookPlainObject(object, key) {
-  let __subscription = new Subscription(ValueTypePlain, key)
-  let newObject = {}
-  newObject.__subscription = __subscription
-  newObject.__context = {}
-  defineProperties(newObject, object)
-  return newObject
+function hookPlainObject(object) {
+  let subscription = new Subscription(ValueTypePlain)
+  let proxyObject = {}
+  proxyObject.$racxSubscription = subscription
+  proxyObject.$context = {}
+  defineProperties(proxyObject, object)
+  return proxyObject
 }
 
 function defineProperties(newObject, object) {
@@ -67,7 +74,7 @@ function defineProperties(newObject, object) {
         enumerable: true,
         configurable: true,
         get: function() {
-          return newObject.__context[key]
+          return newObject.$context[key]
         },
         set: function(value) {
           transformSubscriptionValue(newObject, key, value, false)
@@ -79,19 +86,19 @@ function defineProperties(newObject, object) {
 
 function transformSubscriptionValue(newObject, key, value, initial = false) {
   let o = getHookValue(value)
-  subscribe(newObject.__subscription, o.__subscription, key)
-  newObject.__context[key] = o
-  !initial && sendNext(newObject.__subscription, { key, value: o })
+  subscribe(newObject.$racxSubscription, o.$racxSubscription, key)
+  newObject.$context[key] = o
+  !initial && sendNext(newObject.$racxSubscription, { key, value: o })
 }
 
-function hookArray(array, key) {
-  let __subscription = new Subscription(ValueTypeArray, key)
+function hookArray(array) {
+  let subscription = new Subscription(ValueTypeArray)
   let newArray = []
-  newArray.__subscription = __subscription
+  newArray.$racxSubscription = subscription
   if (array.length > 0) {
     array.forEach((item, index) => {
       let o = getHookValue(item)
-      subscribe(__subscription, o.__subscription, safeString(index))
+      subscribe(subscription, o.$racxSubscription, safeString(index))
       newArray[index] = o
     })
   }
@@ -114,12 +121,12 @@ function _hookPush(array) {
     let nextValue = []
     items.forEach((item, i) => {
       let o = getHookValue(item)
-      subscribe(array.__subscription, o.__subscription, safeString(index + i))
+      subscribe(array.$racxSubscription, o.$racxSubscription, safeString(index + i))
       os[i] = o
       nextValue.push({ key: safeString(index + i), value: o })
     })
     let ret = originalPush.apply(array, os)
-    sendNext(array.__subscription, nextValue)
+    sendNext(array.$racxSubscription, nextValue)
     return ret
   }
 }
@@ -128,9 +135,9 @@ function _hookPop(array) {
   let originalPop = array.pop
   array.pop = () => {
     let index = array.length - 1
-    disposeKey(array.__subscription, safeString(index))
+    disposeKey(array.$racxSubscription, safeString(index))
     let ret = originalPop.apply(array)
-    sendNext(array.__subscription, { key: safeString(index) })
+    sendNext(array.$racxSubscription, { key: safeString(index) })
     return ret
   }
 }
@@ -143,19 +150,19 @@ function _hookUnshift(array) {
     let nextValue = []
     items.forEach((item, i) => {
       let o = getHookValue(item)
-      subscribe(array.__subscription, o.__subscription, safeString(i))
+      subscribe(array.$racxSubscription, o.$racxSubscription, safeString(i))
       os[i] = o
       nextValue.push({ key: safeString(i), value: o })
     })
     array.forEach((item, i) => {
       let key = safeString(index + i)
-      if (item.__subscription) {
-        item.__subscription.subscriptionKeyInParentKey = key
+      if (item.$racxSubscription) {
+        item.$racxSubscription.subscriptionKeyInParentKey = key
       }
       nextValue.push({ key, value: item })
     })
     let ret = unshift.apply(array, os)
-    sendNext(array.__subscription, nextValue)
+    sendNext(array.$racxSubscription, nextValue)
     return ret
   }
 }
@@ -165,12 +172,12 @@ function _hookShift(array) {
   array.shift = () => {
     let nextValue = []
     if (array.length > 0) {
-      disposeKey(array.__subscription, safeString(0))
+      disposeKey(array.$racxSubscription, safeString(0))
       array.forEach((item, i) => {
         if (i > 0) {
           let key = safeString(i - 1)
-          if (item.__subscription) {
-            item.__subscription.subscriptionKeyInParentKey = key
+          if (item.$racxSubscription) {
+            item.$racxSubscription.subscriptionKeyInParentKey = key
           }
           nextValue.push({ key, value: item })
         }
@@ -179,7 +186,7 @@ function _hookShift(array) {
     }
     let ret = shift.apply(array)
     if (nextValue.length > 0) {
-      sendNext(array.__subscription, nextValue)
+      sendNext(array.$racxSubscription, nextValue)
     }
     return ret
   }
@@ -194,14 +201,14 @@ function _hookSplice(array) {
     let deleteCount = items[1] || originalLength - start
     for (let i = start; i < array.length && i - start < deleteCount; i++) {
       let key = safeString(i)
-      disposeKey(array.__subscription, key)
+      disposeKey(array.$racxSubscription, key)
     }
     let pushArray = items.slice(2)
     let transformArray = []
     if (pushArray && pushArray.length > 0) {
       pushArray.forEach((item, i) => {
         let o = getHookValue(item)
-        subscribe(array.__subscription, o.__subscription, 'dirty' + i)
+        subscribe(array.$racxSubscription, o.$racxSubscription, 'dirty' + i)
         transformArray[i] = o
       })
     }
@@ -212,8 +219,8 @@ function _hookSplice(array) {
       for (let i = 0; i < pushArray.length; i++) {
         let key = safeString(i + start)
         let item = array[i + start]
-        if (item.__subscription) {
-          item.__subscription.subscriptionKeyInParentKey = key
+        if (item.$racxSubscription) {
+          item.$racxSubscription.subscriptionKeyInParentKey = key
         }
         nextValue.push({ key, value: item })
       }
@@ -222,8 +229,8 @@ function _hookSplice(array) {
         let key = safeString(i)
         if (i < newLength) {
           let item = array[i]
-          if (item.__subscription) {
-            item.__subscription.subscriptionKeyInParentKey = key
+          if (item.$racxSubscription) {
+            item.$racxSubscription.subscriptionKeyInParentKey = key
           }
           nextValue.push({ key, value: item })
         } else {
@@ -232,7 +239,7 @@ function _hookSplice(array) {
       }
     }
     if (nextValue.length > 0) {
-      sendNext(array.__subscription, nextValue)
+      sendNext(array.$racxSubscription, nextValue)
     }
     return ret
   }
@@ -259,15 +266,15 @@ function _hookReverse(array) {
 function _recoverArraySubscription(array) {
   let nextValue = []
   array.forEach((item, i) => {
-    if (item.__subscription) {
-      if (item.__subscription.subscriptionKeyInParentKey !== safeString(i)) {
-        item.__subscription.subscriptionKeyInParentKey = safeString(i)
+    if (item.$racxSubscription) {
+      if (item.$racxSubscription.subscriptionKeyInParentKey !== safeString(i)) {
+        item.$racxSubscription.subscriptionKeyInParentKey = safeString(i)
         nextValue.push({ key: safeString(i), value: item })
       }
     }
   })
   if (nextValue.length > 0) {
-    sendNext(array.__subscription, nextValue)
+    sendNext(array.$racxSubscription, nextValue)
   }
 }
 
@@ -277,22 +284,22 @@ function _hookSetter(array) {
   }
 }
 
-function hookObservable(observable, key) {
-  let __subscription = new Subscription(ValueTypeObservable, key)
-  observable.__subscription = __subscription
+function hookObservable(observable) {
+  let subscription = new Subscription(ValueTypeObservable)
+  observable.$racxSubscription = subscription
   let _selfSignal = observable.getRacxSignal()
   _selfSignal.subscribe(
     v => {
-      sendNext(__subscription, v)
+      sendNext(subscription, v)
     },
     () => {
-      __subscription.subject.sendComplete()
+      subscription.subject.sendComplete()
     },
     error => {
-      __subscription.subject.sendError(error)
+      subscription.subject.sendError(error)
     }
   )
   return observable
 }
 
-module.exports = getHookValue
+module.exports = { getHookValue, extendsObservableProperty } 

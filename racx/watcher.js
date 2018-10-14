@@ -10,10 +10,8 @@ class Watcher {
       this.sync = config.sync || false
       let dep = config.dep
       if (dep) {
-        if (Array.isArray(dep)) {
-          dep = dep.map(d => this.store.racx_property_key + '.' + d)
-        } else {
-          dep = [this.store.racx_property_key + '.' + dep]
+        if (!Array.isArray(dep)) {
+          dep = [dep]
         }
       }
       this.dep = dep || '*'
@@ -29,9 +27,9 @@ class Watcher {
         return
       }
       this._active = true
-      this.timeoutId = setTimeout(() => {
+      Promise.resolve().then(() => {
         this.execute()
-      }, 0)
+      })
     }
   }
 
@@ -44,8 +42,6 @@ class Watcher {
 
   clear() {
     this._active = false
-    this.timeoutId && clearTimeout(this.timeoutId)
-    this.timeoutId = null
   }
 }
 module.exports = Watcher
