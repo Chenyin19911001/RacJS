@@ -24,18 +24,21 @@
 // 	console.log(v)
 // })
 
-let a = []
-a.length = 2
-let b = new Proxy(a, {
-	get: function(obj, pro) {
-		if (typeof pro === 'string') {
-			console.log(pro)
-		}
-        return a[pro]
-	},
+// let a = []
+// a.length = 2
+// let b = new Proxy(a, {
+// 	get: function(obj, pro) {
+// 		if (typeof pro === 'string') {
+// 			console.log(pro)
+// 		}
+//         return a[pro]
+// 	},
 
-	set: function(obj, pro, value) {
-		a[pro] = value
-	}
-})
-console.log(b)
+// 	set: function(obj, pro, value) {
+// 		a[pro] = value
+// 	}
+// })
+// console.log(b)
+
+
+

@@ -2,7 +2,7 @@
   "name": "racjs",
   "version": "1.0.0",
   "description": "implementation of RAC(OC) on JavaScript and replacement of RxJS",
-  "main": "./index.js",
+  "main": "./src/index.js",
   "scripts": {},
   "repository": {
     "type": "git",
