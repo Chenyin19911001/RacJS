@@ -1,6 +1,6 @@
 {
   "name": "racjs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "implementation of RAC(OC) on JavaScript and replacement of RxJS",
   "main": "./src/index.js",
   "scripts": {},
